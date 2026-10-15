@@ -1,0 +1,69 @@
+services:
+  client:
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1001}
+        GROUP_ID: ${GROUP_ID:-1001}
+    user: "${USER_ID:-1001}:${GROUP_ID:-1001}"
+    container_name: react-frontend
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    depends_on:
+      - server
+    networks:
+      - livedoc-network  
+    volumes:
+      - ./:/app
+      - /app/client/node_modules
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/server/Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1001}
+        GROUP_ID: ${GROUP_ID:-1001}
+    user: "${USER_ID:-1001}:${GROUP_ID:-1001}"
+    container_name: node-backend
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - livedoc-network
+    volumes:
+      - ./:/app
+      - /app/server/node_modules 
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    container_name: livedoc-postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:                                      
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-livedoc} -d ${DB_DATABASE:-livedoc}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:                                     
+      - no-new-privileges:true
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    networks:
+      - livedoc-network  
+
+networks:
+  livedoc-network:
+    driver: bridge
+
+volumes:
+  pgdata:
