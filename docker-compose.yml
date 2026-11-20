@@ -26,6 +26,9 @@ services:
         USER_ID: ${USER_ID:-1001}
         GROUP_ID: ${GROUP_ID:-1001}
     user: "${USER_ID:-1001}:${GROUP_ID:-1001}"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}
     container_name: node-backend
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
